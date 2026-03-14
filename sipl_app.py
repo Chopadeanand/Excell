@@ -581,7 +581,7 @@ with right_col:
                                     use_container_width=True,
                                 )
                             else:
-                                ppt_status.markdown('<div class="val-fail">✗ PPT generation failed — is Node.js installed?</div>', unsafe_allow_html=True)
+                                ppt_status.markdown('<div class="val-fail">✗ PPT generation failed — check that python-pptx is installed</div>', unsafe_allow_html=True)
                     except Exception as ppt_err:
                         ppt_status.markdown(f'<div class="val-fail">✗ PPT error: {ppt_err}</div>', unsafe_allow_html=True)
 
