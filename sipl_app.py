@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import os, sys, tempfile, shutil, io, time
+import os, sys, tempfile, shutil, io, time, zipfile
 from pathlib import Path
 
 # ── Page config ──────────────────────────────────────────────────────────────
@@ -535,6 +535,7 @@ with right_col:
                 """, unsafe_allow_html=True)
                 st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
+                # Show individual xlsx download buttons
                 for g in generated:
                     if g.get("bytes"):
                         st.download_button(
@@ -550,6 +551,7 @@ with right_col:
 
                 # ── Generate PPT from all successful reports ──
                 success_reports = [(g["name"], g["bytes"]) for g in generated if g.get("bytes")]
+                ppt_bytes = None
                 if success_reports:
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
                     st.markdown('<div class="card-title">📊 PowerPoint Report</div>', unsafe_allow_html=True)
@@ -582,3 +584,27 @@ with right_col:
                                 ppt_status.markdown('<div class="val-fail">✗ PPT generation failed — is Node.js installed?</div>', unsafe_allow_html=True)
                     except Exception as ppt_err:
                         ppt_status.markdown(f'<div class="val-fail">✗ PPT error: {ppt_err}</div>', unsafe_allow_html=True)
+
+                # ── ZIP: all reports + PPT in one folder ──
+                if success_reports:
+                    st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="card-title">📦 Download Everything</div>', unsafe_allow_html=True)
+
+                    zip_buf = io.BytesIO()
+                    folder_name = "HiRATE_Reports"
+                    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                        for g in generated:
+                            if g.get("bytes"):
+                                zf.writestr(f"{folder_name}/{g['name']}", g["bytes"])
+                        if ppt_bytes:
+                            zf.writestr(f"{folder_name}/HiRATE_Report.pptx", ppt_bytes)
+                    zip_buf.seek(0)
+
+                    st.download_button(
+                        label="⬇  Download All  (HiRATE_Reports.zip)",
+                        data=zip_buf.getvalue(),
+                        file_name="HiRATE_Reports.zip",
+                        mime="application/zip",
+                        key="dl_zip",
+                        use_container_width=True,
+                    )

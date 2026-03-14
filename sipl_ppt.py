@@ -137,13 +137,13 @@ function addFooter(slide, lbl) {
 
 projects.forEach((p, pi) => {
 
-  // ── SLIDE 1: Division-wise + Pie ────────────────────
+  // ── SLIDE 1: Division-wise (full width) ─────────────
   const s1 = pres.addSlide();
   s1.background = { color: BG_SLD };
-  addHeader(s1, "HiRATE Observations — Division Wise & Summary", p.proj_name);
+  addHeader(s1, "HiRATE Observations — Division Wise", p.proj_name);
 
   s1.addText("HiRATE Observations Division wise — " + p.proj_name, {
-    x:0.3, y:0.75, w:6.2, h:0.15,
+    x:0.3, y:0.75, w:9.4, h:0.15,
     fontSize:8, color:"999999", italic:true, fontFace:"Calibri", margin:0
   });
 
@@ -152,12 +152,12 @@ projects.forEach((p, pi) => {
   const divMaxIssues = Math.max(...p.div_issues, 1);
   const divYMax = Math.ceil(divMaxIssues * 1.5 / 5) * 5;
 
-  // Single chart — Total Audited + No of Issues, Y-axis scaled to No of Issues
+  // Single chart — full width, Total Audited + No of Issues
   s1.addChart(pres.charts.BAR, [
     { name:"Total Audited", labels:p.div_labels, values:p.div_total },
     { name:"No of Issues",  labels:p.div_labels, values:p.div_issues },
   ], {
-    x:0.3, y:0.9, w:6.2, h:4.3,
+    x:0.3, y:0.9, w:9.4, h:4.3,
     barDir:"col", barGrouping:"clustered", barGapWidthPct:80,
     chartColors:[NAVY, ORANGE],
     chartArea:{ fill:{color:WHITE}, roundedCorners:false },
@@ -172,65 +172,24 @@ projects.forEach((p, pi) => {
     showTitle:false,
   });
 
-  // Dashed divider
-  s1.addShape(pres.shapes.LINE, {
-    x:6.65, y:0.9, w:0, h:4.3,
-    line:{ color:"CCCCCC", width:1, dashType:"dash" }
-  });
-
-  // Pie chart (right side)
-  s1.addChart(pres.charts.PIE, [{
-    name:"Summary",
-    labels:["Satisfactory","Observations"],
-    values:[p.satisfactory, p.observations]
-  }], {
-    x:6.75, y:0.9, w:3.0, h:2.8,
-    chartColors:[GREEN, ORANGE],
-    chartArea:{ fill:{color:WHITE}, roundedCorners:false },
-    showPercent:true, showValue:true,
-    dataLabelFontSize:10, dataLabelColor:"333333",
-    showLegend:true, legendPos:"b", legendFontSize:9,
-    showTitle:true, title:"OBSERVATIONS SUMMARY",
-    titleFontSize:10, titleColor:"333333",
-  });
-
-  // Stat boxes below pie
-  const total  = p.satisfactory + p.observations;
-  const satPct = total > 0 ? ((p.satisfactory/total)*100).toFixed(1) : "0";
-  const obsPct = total > 0 ? ((p.observations/total)*100).toFixed(1) : "0";
-
-  s1.addShape(pres.shapes.RECTANGLE,
-    { x:6.75, y:3.85, w:1.4, h:0.85, fill:{color:"E8F5E1"}, line:{color:GREEN, width:1.5} });
-  s1.addText([
-    { text:String(p.satisfactory), options:{fontSize:20, bold:true, color:"2E7D32", breakLine:true} },
-    { text:satPct+"% Satisfactory",  options:{fontSize:8, color:GRAY} }
-  ], { x:6.75, y:3.85, w:1.4, h:0.85, align:"center", valign:"middle", margin:0 });
-
-  s1.addShape(pres.shapes.RECTANGLE,
-    { x:8.35, y:3.85, w:1.4, h:0.85, fill:{color:"FFF3E0"}, line:{color:ORANGE, width:1.5} });
-  s1.addText([
-    { text:String(p.observations), options:{fontSize:20, bold:true, color:"E65100", breakLine:true} },
-    { text:obsPct+"% Issues",        options:{fontSize:8, color:GRAY} }
-  ], { x:8.35, y:3.85, w:1.4, h:0.85, align:"center", valign:"middle", margin:0 });
-
   addFooter(s1, "Slide " + (pi*2+1));
 
-  // ── SLIDE 2: Category-wise ──────────────────────────
+  // ── SLIDE 2: Category-wise + Pie ────────────────────
   const s2 = pres.addSlide();
   s2.background = { color: BG_SLD };
-  addHeader(s2, "HiRATE Observations — Category Wise", p.proj_name);
+  addHeader(s2, "HiRATE Observations — Category Wise & Summary", p.proj_name);
 
   s2.addText("HiRATE Observations Category wise — " + p.proj_name, {
-    x:0.3, y:0.75, w:9.4, h:0.15,
+    x:0.3, y:0.75, w:6.2, h:0.15,
     fontSize:8, color:"999999", italic:true, fontFace:"Calibri", margin:0
   });
 
-  // Category bar — only Total Audited + No of Issues (no % of issues)
+  // Category bar (left 63%) — Total Audited + No of Issues
   s2.addChart(pres.charts.BAR, [
     { name:"Total Audited", labels:p.cat_labels, values:p.cat_total },
     { name:"No of Issues",  labels:p.cat_labels, values:p.cat_issues },
   ], {
-    x:0.3, y:0.9, w:9.4, h:4.3,
+    x:0.3, y:0.9, w:6.2, h:4.3,
     barDir:"col", barGrouping:"clustered", barGapWidthPct:120,
     chartColors:[NAVY, ORANGE],
     chartArea:{ fill:{color:WHITE}, roundedCorners:false },
@@ -243,6 +202,47 @@ projects.forEach((p, pi) => {
     showLegend:true, legendPos:"b", legendFontSize:9,
     showTitle:false,
   });
+
+  // Dashed divider
+  s2.addShape(pres.shapes.LINE, {
+    x:6.65, y:0.9, w:0, h:4.3,
+    line:{ color:"CCCCCC", width:1, dashType:"dash" }
+  });
+
+  // Pie chart (right side) — larger to prevent label overflow
+  s2.addChart(pres.charts.PIE, [{
+    name:"Summary",
+    labels:["Satisfactory","Observations"],
+    values:[p.satisfactory, p.observations]
+  }], {
+    x:6.75, y:0.85, w:3.1, h:3.1,
+    chartColors:[GREEN, ORANGE],
+    chartArea:{ fill:{color:WHITE}, roundedCorners:false },
+    showPercent:true, showValue:false,
+    dataLabelFontSize:11, dataLabelColor:"333333",
+    showLegend:true, legendPos:"b", legendFontSize:9,
+    showTitle:true, title:"OBSERVATIONS SUMMARY",
+    titleFontSize:10, titleColor:"333333",
+  });
+
+  // Stat boxes below pie — wider to fit large numbers
+  const total  = p.satisfactory + p.observations;
+  const satPct = total > 0 ? ((p.satisfactory/total)*100).toFixed(1) : "0";
+  const obsPct = total > 0 ? ((p.observations/total)*100).toFixed(1) : "0";
+
+  s2.addShape(pres.shapes.RECTANGLE,
+    { x:6.75, y:4.1, w:1.45, h:0.8, fill:{color:"E8F5E1"}, line:{color:GREEN, width:1.5} });
+  s2.addText([
+    { text:String(p.satisfactory), options:{fontSize:16, bold:true, color:"2E7D32", breakLine:true} },
+    { text:satPct+"% Satisfactory",  options:{fontSize:7, color:GRAY} }
+  ], { x:6.75, y:4.1, w:1.45, h:0.8, align:"center", valign:"middle", margin:0 });
+
+  s2.addShape(pres.shapes.RECTANGLE,
+    { x:8.35, y:4.1, w:1.45, h:0.8, fill:{color:"FFF3E0"}, line:{color:ORANGE, width:1.5} });
+  s2.addText([
+    { text:String(p.observations), options:{fontSize:16, bold:true, color:"E65100", breakLine:true} },
+    { text:obsPct+"% Issues",        options:{fontSize:7, color:GRAY} }
+  ], { x:8.35, y:4.1, w:1.45, h:0.8, align:"center", valign:"middle", margin:0 });
 
   addFooter(s2, "Slide " + (pi*2+2));
 });
