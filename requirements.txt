@@ -1,5 +1,17 @@
 # Python dependencies for HiRATE Report Generator
+# Install with: pip install -r requirements.txt
 
 pandas>=1.5.0
 openpyxl>=3.0.0
 streamlit>=1.20.0
+
+# ============================================================
+# Node.js Requirement (for PowerPoint generation)
+# ============================================================
+# This project uses pptxgenjs for generating PowerPoint reports.
+# You must have Node.js installed (https://nodejs.org/)
+#
+# After installing Node.js, run this in the project folder:
+#   npm install
+#
+# This will install pptxgenjs from package.json
