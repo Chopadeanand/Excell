@@ -174,10 +174,6 @@ def add_bar_chart(slide, x, y, w, h, categories, series_list, y_max=None, lbl_si
     chart.category_axis.tick_labels.font.size = Pt(8)
     chart.category_axis.tick_labels.font.color.rgb = GRAY
 
-    chart.plot_area.fill.solid()
-    chart.plot_area.fill.fore_color.rgb = WHITE
-    chart.chart_area.fill.solid()
-    chart.chart_area.fill.fore_color.rgb = WHITE
     gf.line.fill.background()
 
     chart.has_legend = True
@@ -221,8 +217,6 @@ def add_pie_chart(slide, x, y, w, h, labels, values, colours, title):
     tf.paragraphs[0].font.bold = True
     tf.paragraphs[0].font.color.rgb = RGBColor(0x33, 0x33, 0x33)
 
-    chart.chart_area.fill.solid()
-    chart.chart_area.fill.fore_color.rgb = WHITE
     gf.line.fill.background()
 
 
