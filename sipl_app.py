@@ -286,12 +286,15 @@ engine = load_engine()
 def load_ppt_engine():
     ppt_path = Path(__file__).parent / "sipl_ppt.py"
     if not ppt_path.exists():
-        return None
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("sipl_ppt", ppt_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+        return None, "sipl_ppt.py not found next to sipl_app.py"
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("sipl_ppt", ppt_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod, None
+    except Exception as e:
+        return None, str(e)
 
 
 # ── Helper functions ──────────────────────────────────────────────────────────
@@ -558,9 +561,9 @@ with right_col:
                     ppt_status = st.empty()
                     ppt_status.markdown('<p style="color:rgba(255,255,255,0.6); font-size:0.85rem;">⏳ Generating PowerPoint...</p>', unsafe_allow_html=True)
                     try:
-                        ppt_engine = load_ppt_engine()
+                        ppt_engine, ppt_load_err = load_ppt_engine()
                         if ppt_engine is None:
-                            ppt_status.markdown('<div class="val-fail">✗ sipl_ppt.py not found next to sipl_app.py</div>', unsafe_allow_html=True)
+                            ppt_status.markdown(f'<div class="val-fail">✗ {ppt_load_err}</div>', unsafe_allow_html=True)
                         else:
                             tmp_ppt = tempfile.mktemp(suffix=".pptx")
                             ok = ppt_engine.generate_ppt_from_reports(success_reports, tmp_ppt)
