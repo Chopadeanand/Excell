@@ -2,10 +2,10 @@
 # Install with: pip install -r requirements.txt
 
 streamlit>=1.32.0
-openpyxl==3.1.5
-python-pptx==1.0.2
-pandas==3.0.1
-lxml==6.0.2
+openpyxl>=3.1.0
+python-pptx>=0.6.21
+pandas>=1.5.0
+lxml>=4.9.0
 
 # ============================================================
 # Node.js Requirement (for PowerPoint generation)
