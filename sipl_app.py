@@ -555,6 +555,7 @@ with right_col:
                 # ── Generate PPT from all successful reports ──
                 success_reports = [(g["name"], g["bytes"]) for g in generated if g.get("bytes")]
                 ppt_bytes = None
+                html_bytes = None
                 if success_reports:
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
                     st.markdown('<div class="card-title">📊 PowerPoint Report</div>', unsafe_allow_html=True)
@@ -588,7 +589,43 @@ with right_col:
                     except Exception as ppt_err:
                         ppt_status.markdown(f'<div class="val-fail">✗ PPT error: {ppt_err}</div>', unsafe_allow_html=True)
 
-                # ── ZIP: all reports + PPT in one folder ──
+                    # ── HTML Dashboard ──
+                    st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
+                    st.markdown('<div class="card-title">🌐 Interactive HTML Dashboard</div>', unsafe_allow_html=True)
+                    html_status = st.empty()
+                    html_status.markdown('<p style="color:rgba(255,255,255,0.6); font-size:0.85rem;">⏳ Generating dashboard...</p>', unsafe_allow_html=True)
+                    try:
+                        dash_path = Path(__file__).parent / "sipl_dashboard.py"
+                        if not dash_path.exists():
+                            html_status.markdown('<div class="val-fail">✗ sipl_dashboard.py not found</div>', unsafe_allow_html=True)
+                        else:
+                            import importlib.util
+                            spec = importlib.util.spec_from_file_location("sipl_dashboard", dash_path)
+                            dash_mod = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(dash_mod)
+                            tmp_html = tempfile.mktemp(suffix=".html")
+                            ok2 = dash_mod.generate_dashboard_from_reports(success_reports, tmp_html)
+                            if ok2 and os.path.exists(tmp_html):
+                                with open(tmp_html, "rb") as fp:
+                                    html_bytes = fp.read()
+                                os.unlink(tmp_html)
+                                html_status.empty()
+                                st.markdown(f'<div class="val-pass">✓ Dashboard generated — {len(success_reports)} project{"s" if len(success_reports)!=1 else ""}</div>', unsafe_allow_html=True)
+                                st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                                st.download_button(
+                                    label="⬇  Download  HiRATE_Dashboard.html",
+                                    data=html_bytes,
+                                    file_name="HiRATE_Dashboard.html",
+                                    mime="text/html",
+                                    key="dl_html",
+                                    use_container_width=True,
+                                )
+                            else:
+                                html_status.markdown('<div class="val-fail">✗ Dashboard generation failed</div>', unsafe_allow_html=True)
+                    except Exception as html_err:
+                        html_status.markdown(f'<div class="val-fail">✗ Dashboard error: {html_err}</div>', unsafe_allow_html=True)
+
+                # ── ZIP: all reports + PPT + HTML in one folder ──
                 if success_reports:
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
                     st.markdown('<div class="card-title">📦 Download Everything</div>', unsafe_allow_html=True)
@@ -601,6 +638,8 @@ with right_col:
                                 zf.writestr(f"{folder_name}/{g['name']}", g["bytes"])
                         if ppt_bytes:
                             zf.writestr(f"{folder_name}/HiRATE_Report.pptx", ppt_bytes)
+                        if html_bytes:
+                            zf.writestr(f"{folder_name}/HiRATE_Dashboard.html", html_bytes)
                     zip_buf.seek(0)
 
                     st.download_button(
