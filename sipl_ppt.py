@@ -18,7 +18,7 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
+from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION, XL_LABEL_POSITION
 from pptx.chart.data import ChartData
 
 DEFAULT_OUTPUT = "HiRATE_Report.pptx"
@@ -163,8 +163,18 @@ def add_bar_chart(slide, x, y, w, h, categories, series_list, y_max=None, lbl_si
         _set_series_colour(chart.series[i], col)
         dl = chart.series[i].data_labels
         dl.showValue = True
+        dl.position = XL_LABEL_POSITION.OUTSIDE_END
         dl.font.size = Pt(lbl_size)
-        dl.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+        dl.font.bold = True
+        dl.font.color.rgb = col
+        # python-pptx bug: showValue at series level stays 0 — fix via lxml
+        from lxml import etree
+        nsmap = 'http://schemas.openxmlformats.org/drawingml/2006/chart'
+        dLbls = chart.series[i]._element.find(f'{{{nsmap}}}dLbls')
+        if dLbls is not None:
+            sv = dLbls.find(f'{{{nsmap}}}showVal')
+            if sv is not None:
+                sv.set('val', '1')
 
     if y_max:
         chart.value_axis.maximum_scale = y_max
@@ -270,9 +280,105 @@ def extract_report_data(xlsx_path):
 # SLIDE BUILDERS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def build_slide1_division(prs, d, slide_num):
-    """Slide 1 — Division-wise full-width bar chart."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank layout
+def build_slide1_category(prs, d, slide_num):
+    """Slide 1 — Dashboard layout matching the HTML template:
+       Header bar | 3 KPI cards (top) | Category bar chart (bottom-left) | Donut/pie (bottom-right)
+    """
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    slide.background.fill.solid()
+    slide.background.fill.fore_color.rgb = RGBColor(0xF4, 0xF7, 0xF6)  # light grey bg
+
+    total   = d["satisfactory"] + d["observations"]
+    sat_pct = round(d["satisfactory"] / total * 100, 1) if total else 0
+    obs_pct = round(d["observations"] / total * 100, 1) if total else 0
+
+    # ── Header bar ────────────────────────────────────────
+    add_rect(slide, 0, 0, 10, 0.7, RGBColor(0x2C, 0x3E, 0x50))
+    add_textbox(slide, 0.2, 0.08, 1.5, 0.54, "HiRATE",
+                22, bold=True, colour=WHITE)
+    add_textbox(slide, 0.2, 0.42, 1.5, 0.25, "AUDIT REPORT",
+                6, bold=False, colour=RGBColor(0xAA, 0xBB, 0xCC))
+    add_textbox(slide, 1.9, 0.1, 6.0, 0.5,
+                f"HiRATE Observations — {d['proj_name']}",
+                16, bold=True, colour=WHITE)
+    # Confidential tag
+    add_rect(slide, 8.3, 0.17, 1.55, 0.36, RGBColor(0xFF, 0xF3, 0xCD),
+             RGBColor(0xFF, 0xEE, 0xBA), 1)
+    add_textbox(slide, 8.3, 0.17, 1.55, 0.36, "CONFIDENTIAL",
+                7, bold=True, colour=RGBColor(0x85, 0x64, 0x04),
+                align=PP_ALIGN.CENTER)
+
+    # ── 3 KPI Cards ───────────────────────────────────────
+    card_y  = 0.82
+    card_h  = 1.0
+    card_bg = WHITE
+    CARD_BORDER = RGBColor(0xE0, 0xE8, 0xF0)
+
+    # Card 1 — Total Observations
+    add_rect(slide, 0.2, card_y, 2.85, card_h, card_bg, CARD_BORDER, 0.5)
+    add_textbox(slide, 0.35, card_y+0.08, 2.5, 0.22, "TOTAL OBSERVATIONS",
+                7, bold=True, colour=RGBColor(0x7F, 0x8C, 0x8D))
+    add_textbox(slide, 0.35, card_y+0.3, 2.5, 0.42, str(total),
+                26, bold=True, colour=RGBColor(0x2C, 0x3E, 0x50))
+    add_textbox(slide, 0.35, card_y+0.74, 2.5, 0.2, "Audits Conducted",
+                8, colour=RGBColor(0x7F, 0x8C, 0x8D))
+
+    # Card 2 — Satisfactory (green top border)
+    add_rect(slide, 3.25, card_y, 2.85, card_h, card_bg, CARD_BORDER, 0.5)
+    add_rect(slide, 3.25, card_y, 2.85, 0.045, RGBColor(0x27, 0xAE, 0x60))  # green top stripe
+    add_textbox(slide, 3.4, card_y+0.08, 2.5, 0.22, "SATISFACTORY",
+                7, bold=True, colour=RGBColor(0x7F, 0x8C, 0x8D))
+    add_textbox(slide, 3.4, card_y+0.3, 2.5, 0.42, f"{sat_pct}%",
+                26, bold=True, colour=RGBColor(0x27, 0xAE, 0x60))
+    add_textbox(slide, 3.4, card_y+0.74, 2.5, 0.2,
+                f"{d['satisfactory']:,} Observations",
+                8, colour=RGBColor(0x7F, 0x8C, 0x8D))
+
+    # Card 3 — Issues Found (red top border)
+    add_rect(slide, 6.3, card_y, 2.85, card_h, card_bg, CARD_BORDER, 0.5)
+    add_rect(slide, 6.3, card_y, 2.85, 0.045, RGBColor(0xC0, 0x39, 0x2B))   # red top stripe
+    add_textbox(slide, 6.45, card_y+0.08, 2.5, 0.22, "ISSUES FOUND",
+                7, bold=True, colour=RGBColor(0x7F, 0x8C, 0x8D))
+    add_textbox(slide, 6.45, card_y+0.3, 2.5, 0.42, f"{obs_pct}%",
+                26, bold=True, colour=RGBColor(0xC0, 0x39, 0x2B))
+    add_textbox(slide, 6.45, card_y+0.74, 2.5, 0.2,
+                f"{d['observations']:,} Observations",
+                8, colour=RGBColor(0x7F, 0x8C, 0x8D))
+
+    # ── Bottom section: Category chart (left) + Pie (right) ──
+    bottom_y = 1.97
+    bottom_h = 3.3
+
+    # Category bar chart
+    add_bar_chart(
+        slide, 0.2, bottom_y, 6.0, bottom_h,
+        d["cat_labels"],
+        [
+            ("Total Audited", d["cat_total"],  NAVY),
+            ("No of Issues",  d["cat_issues"], ORANGE),
+        ],
+        lbl_size=8,
+    )
+
+    # Pie/donut chart — white card background
+    add_rect(slide, 6.5, bottom_y, 3.3, bottom_h, WHITE, CARD_BORDER, 0.5)
+    add_textbox(slide, 6.65, bottom_y+0.12, 3.0, 0.25, "OBSERVATIONS SUMMARY",
+                8, bold=True, colour=RGBColor(0x7F, 0x8C, 0x8D))
+    add_pie_chart(
+        slide, 6.55, bottom_y+0.35, 3.2, 2.3,
+        ["Satisfactory", "Observations"],
+        [d["satisfactory"], d["observations"]],
+        [RGBColor(0x27, 0xAE, 0x60), RGBColor(0xE0, 0xE0, 0xE0)],
+        "",   # title handled by textbox above
+    )
+
+    # Footer
+    add_footer(slide, f"Slide {slide_num}")
+
+
+def build_slide2_division(prs, d, slide_num):
+    """Slide 2 — Division-wise full-width bar chart."""
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide.background.fill.solid()
     slide.background.fill.fore_color.rgb = BG_SLD
 
@@ -294,58 +400,6 @@ def build_slide1_division(prs, d, slide_num):
         y_max=div_ymax,
         lbl_size=7,
     )
-    add_footer(slide, f"Slide {slide_num}")
-
-
-def build_slide2_category(prs, d, slide_num):
-    """Slide 2 — Category-wise bar (left) + Pie + stat boxes (right)."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    slide.background.fill.solid()
-    slide.background.fill.fore_color.rgb = BG_SLD
-
-    add_header(slide, "HiRATE Observations — Category Wise & Summary", d["proj_name"])
-    add_textbox(slide, 0.3, 0.75, 6.2, 0.15,
-                f"HiRATE Observations Category wise — {d['proj_name']}",
-                8, italic=True, colour=RGBColor(0x99, 0x99, 0x99))
-
-    add_bar_chart(
-        slide, 0.3, 0.9, 6.2, 4.3,
-        d["cat_labels"],
-        [
-            ("Total Audited", d["cat_total"],  NAVY),
-            ("No of Issues",  d["cat_issues"], ORANGE),
-        ],
-        lbl_size=8,
-    )
-
-    # Dashed divider
-    line = slide.shapes.add_connector(
-        1, Inches(6.65), Inches(0.9), Inches(6.65), Inches(5.2)
-    )
-    line.line.color.rgb = RGBColor(0xCC, 0xCC, 0xCC)
-    line.line.width = Pt(1)
-
-    # Pie
-    add_pie_chart(
-        slide, 6.75, 0.85, 3.1, 3.1,
-        ["Satisfactory", "Observations"],
-        [d["satisfactory"], d["observations"]],
-        [GREEN, ORANGE],
-        "OBSERVATIONS SUMMARY",
-    )
-
-    # Stat boxes
-    total   = d["satisfactory"] + d["observations"]
-    sat_pct = round(d["satisfactory"] / total * 100, 1) if total else 0
-    obs_pct = round(d["observations"] / total * 100, 1) if total else 0
-
-    add_stat_box(slide, 6.75, 4.1, 1.45, 0.8,
-                 d["satisfactory"], f"{sat_pct}% Satisfactory",
-                 GREEN_BG, GREEN, GREEN_DARK)
-    add_stat_box(slide, 8.35, 4.1, 1.45, 0.8,
-                 d["observations"], f"{obs_pct}% Issues",
-                 ORANGE_BG, ORANGE, ORANGE_DARK)
-
     add_footer(slide, f"Slide {slide_num}")
 
 
@@ -373,8 +427,8 @@ def build_ppt(report_files, output_path):
     prs.slide_height = SH
 
     for i, d in enumerate(projects):
-        build_slide1_division(prs, d, i * 2 + 1)
-        build_slide2_category(prs, d, i * 2 + 2)
+        build_slide1_category(prs, d, i * 2 + 1)
+        build_slide2_division(prs, d, i * 2 + 2)
 
     prs.save(output_path)
     print(f"\n✓  Saved: {output_path}")
