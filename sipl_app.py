@@ -625,6 +625,7 @@ with right_col:
                     except Exception as html_err:
                         html_status.markdown(f'<div class="val-fail">✗ Dashboard error: {html_err}</div>', unsafe_allow_html=True)
 
+<<<<<<< HEAD
                     # ── Word Summary ──
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
                     st.markdown('<div class="card-title">📝 Word Summary Report</div>', unsafe_allow_html=True)
@@ -662,6 +663,8 @@ with right_col:
                     except Exception as sum_err:
                         summary_status.markdown(f'<div class="val-fail">✗ Summary error: {sum_err}</div>', unsafe_allow_html=True)
 
+=======
+>>>>>>> 34c41b806f89ddcb982dab967a6e7b33008eef3f
                 # ── ZIP: all reports + PPT + HTML in one folder ──
                 if success_reports:
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
@@ -677,8 +680,11 @@ with right_col:
                             zf.writestr(f"{folder_name}/HiRATE_Report.pptx", ppt_bytes)
                         if html_bytes:
                             zf.writestr(f"{folder_name}/HiRATE_Dashboard.html", html_bytes)
+<<<<<<< HEAD
                         if summary_bytes:
                             zf.writestr(f"{folder_name}/HiRATE_Summary.docx", summary_bytes)
+=======
+>>>>>>> 34c41b806f89ddcb982dab967a6e7b33008eef3f
                     zip_buf.seek(0)
 
                     st.download_button(
