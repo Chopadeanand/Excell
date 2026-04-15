@@ -30,10 +30,31 @@ def extract_report_data(xlsx_path):
 
     # Project name from second sheet name  e.g. ALL_MKTPL_Ratings_List → MKTPL
     data_sheet = next((s for s in wb.sheetnames if s != 'Sheet1'), None)
-    proj_name  = "Project"
+    proj_name     = "Project"
+    report_period = ""
     if data_sheet:
         m = re.match(r'ALL_(.+?)_Ratings_List', data_sheet)
         proj_name = m.group(1) if m else data_sheet
+
+    # Try to extract month+year from the xlsx filename
+    _months_map = {
+        'january':'January','february':'February','march':'March',
+        'april':'April','may':'May','june':'June','july':'July',
+        'august':'August','september':'September','october':'October',
+        'november':'November','december':'December'
+    }
+    _fname_lower = os.path.splitext(os.path.basename(xlsx_path))[0].lower()
+    _mp = re.search(
+        r'(' + '|'.join(_months_map.keys()) + r')[_\s-]*(\d{4})',
+        _fname_lower
+    )
+    if _mp:
+        report_period = _months_map[_mp.group(1)] + ' ' + _mp.group(2)
+    else:
+        # Try year-month order too: 2026_april
+        _mp2 = re.search(r'(\d{4})[_\s-]*(' + '|'.join(_months_map.keys()) + r')', _fname_lower)
+        if _mp2:
+            report_period = _months_map[_mp2.group(2)] + ' ' + _mp2.group(1)
 
     # Category data: rows 3-9, cols 10(label) 11(total) 12(issues) 13(pct)
     cat_labels, cat_total, cat_issues, cat_pct = [], [], [], []
@@ -46,8 +67,9 @@ def extract_report_data(xlsx_path):
         cat_labels.append(str(lbl))
         cat_total.append(int(ws.cell(r, 11).value or 0))
         cat_issues.append(int(ws.cell(r, 12).value or 0))
-        pv = ws.cell(r, 13).value
-        cat_pct.append(round(float(pv) * 100, 2) if isinstance(pv, float) else 0.0)
+        t_val = int(ws.cell(r, 11).value or 0)
+        i_val = int(ws.cell(r, 12).value or 0)
+        cat_pct.append(round(i_val / t_val * 100, 2) if t_val > 0 else 0.0)
 
     # KPI overall: row 3, cols 16(total) 17(satisfactory) 18(observations)
     total_kpi = int(ws.cell(3, 16).value or 0)
@@ -63,8 +85,9 @@ def extract_report_data(xlsx_path):
         div_labels.append(str(ws.cell(r, 1).value))
         div_total.append(int(ws.cell(r, 2).value or 0))
         div_issues.append(int(ws.cell(r, 3).value or 0))
-        pv = ws.cell(r, 4).value
-        div_pct.append(round(float(pv) * 100, 2) if isinstance(pv, float) else 0.0)
+        t_val = int(ws.cell(r, 2).value or 0)
+        i_val = int(ws.cell(r, 3).value or 0)
+        div_pct.append(round(i_val / t_val * 100, 2) if t_val > 0 else 0.0)
         r += 1
 
     # Sort division by % Issues descending
@@ -74,6 +97,7 @@ def extract_report_data(xlsx_path):
 
     return {
         "proj_name":    proj_name,
+        "report_period": report_period,
         "cat_labels":   cat_labels,
         "cat_total":    cat_total,
         "cat_issues":   cat_issues,
@@ -99,6 +123,7 @@ def build_html(projects):
     js_projects = {}
     for d in projects:
         js_projects[d["proj_name"]] = {
+            "reportPeriod": d["report_period"],
             "total":      d["total"],
             "sat":        d["satisfactory"],
             "obs":        d["observations"],
@@ -415,9 +440,10 @@ function show(key) {{
   nav.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.key===key));
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const now = new Date();
-  const curMonth = MONTHS[now.getMonth()];
-  const curYear = now.getFullYear();
-  const title = 'HiRATE Observations \u2014 ' + key + ' - ' + curMonth + ' ' + curYear;
+  const period = d.reportPeriod && d.reportPeriod.trim()
+    ? d.reportPeriod
+    : MONTHS[now.getMonth()] + ' ' + now.getFullYear();
+  const title = 'HiRATE Observations \u2014 ' + key + ' - ' + period;
   document.getElementById('title-0').textContent = title;
   document.getElementById('title-1').textContent = title;
   animNum(document.getElementById('kpi-total'), d.total);
