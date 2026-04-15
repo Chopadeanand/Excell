@@ -459,7 +459,7 @@ with right_col:
         for r in file_results:
             badge_map = {
                 "ok":      ("badge-ok",   "✓ READY"),
-                "warn_ok": ("badge-warn",  "⚠ READY WITH WARNINGS"),
+                "warn_ok": ("badge-warn", "⚠ READY WITH WARNINGS"),
                 "warn":    ("badge-error", "⚠ VALIDATION FAILED"),
                 "error":   ("badge-error", "✗ ERROR"),
             }
@@ -544,7 +544,7 @@ with right_col:
                         st.download_button(
                             label=f"⬇  Download  {g['name']}",
                             data=g["bytes"],
-                            file_name=g["name"],
+                            file_name=g['name'],
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             key=f"dl_{g['name']}",
                             use_container_width=True,
@@ -625,46 +625,43 @@ with right_col:
                     except Exception as html_err:
                         html_status.markdown(f'<div class="val-fail">✗ Dashboard error: {html_err}</div>', unsafe_allow_html=True)
 
-<<<<<<< HEAD
-                    # ── Word Summary ──
-                    st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
-                    st.markdown('<div class="card-title">📝 Word Summary Report</div>', unsafe_allow_html=True)
-                    summary_status = st.empty()
-                    summary_status.markdown('<p style="color:rgba(255,255,255,0.6); font-size:0.85rem;">⏳ Generating Word summary...</p>', unsafe_allow_html=True)
-                    summary_bytes = None
-                    try:
-                        summary_path = Path(__file__).parent / "sipl_summary.py"
-                        if not summary_path.exists():
-                            summary_status.markdown('<div class="val-fail">✗ sipl_summary.py not found</div>', unsafe_allow_html=True)
+                # ── Word Summary ──
+                st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="card-title">📝 Word Summary Report</div>', unsafe_allow_html=True)
+                summary_status = st.empty()
+                summary_status.markdown('<p style="color:rgba(255,255,255,0.6); font-size:0.85rem;">⏳ Generating Word summary...</p>', unsafe_allow_html=True)
+                summary_bytes = None
+                try:
+                    summary_path = Path(__file__).parent / "sipl_summary.py"
+                    if not summary_path.exists():
+                        summary_status.markdown('<div class="val-fail">✗ sipl_summary.py not found</div>', unsafe_allow_html=True)
+                    else:
+                        import importlib.util
+                        spec = importlib.util.spec_from_file_location("sipl_summary", summary_path)
+                        sum_mod = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(sum_mod)
+                        tmp_docx = tempfile.mktemp(suffix=".docx")
+                        ok3 = sum_mod.generate_summary_from_reports(success_reports, tmp_docx)
+                        if ok3 and os.path.exists(tmp_docx):
+                            with open(tmp_docx, "rb") as fp:
+                                summary_bytes = fp.read()
+                            os.unlink(tmp_docx)
+                            summary_status.empty()
+                            st.markdown(f'<div class="val-pass">✓ Word summary generated — {len(success_reports)} project{"s" if len(success_reports)!=1 else ""}</div>', unsafe_allow_html=True)
+                            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                            st.download_button(
+                                label="⬇  Download  HiRATE_Summary.docx",
+                                data=summary_bytes,
+                                file_name="HiRATE_Summary.docx",
+                                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                key="dl_summary",
+                                use_container_width=True,
+                            )
                         else:
-                            import importlib.util
-                            spec = importlib.util.spec_from_file_location("sipl_summary", summary_path)
-                            sum_mod = importlib.util.module_from_spec(spec)
-                            spec.loader.exec_module(sum_mod)
-                            tmp_docx = tempfile.mktemp(suffix=".docx")
-                            ok3 = sum_mod.generate_summary_from_reports(success_reports, tmp_docx)
-                            if ok3 and os.path.exists(tmp_docx):
-                                with open(tmp_docx, "rb") as fp:
-                                    summary_bytes = fp.read()
-                                os.unlink(tmp_docx)
-                                summary_status.empty()
-                                st.markdown(f'<div class="val-pass">✓ Word summary generated — {len(success_reports)} project{"s" if len(success_reports)!=1 else ""}</div>', unsafe_allow_html=True)
-                                st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-                                st.download_button(
-                                    label="⬇  Download  HiRATE_Summary.docx",
-                                    data=summary_bytes,
-                                    file_name="HiRATE_Summary.docx",
-                                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                                    key="dl_summary",
-                                    use_container_width=True,
-                                )
-                            else:
-                                summary_status.markdown('<div class="val-fail">✗ Summary generation failed</div>', unsafe_allow_html=True)
-                    except Exception as sum_err:
-                        summary_status.markdown(f'<div class="val-fail">✗ Summary error: {sum_err}</div>', unsafe_allow_html=True)
+                            summary_status.markdown('<div class="val-fail">✗ Summary generation failed</div>', unsafe_allow_html=True)
+                except Exception as sum_err:
+                    summary_status.markdown(f'<div class="val-fail">✗ Summary error: {sum_err}</div>', unsafe_allow_html=True)
 
-=======
->>>>>>> 34c41b806f89ddcb982dab967a6e7b33008eef3f
                 # ── ZIP: all reports + PPT + HTML in one folder ──
                 if success_reports:
                     st.markdown('<div class="sep"></div>', unsafe_allow_html=True)
@@ -680,11 +677,8 @@ with right_col:
                             zf.writestr(f"{folder_name}/HiRATE_Report.pptx", ppt_bytes)
                         if html_bytes:
                             zf.writestr(f"{folder_name}/HiRATE_Dashboard.html", html_bytes)
-<<<<<<< HEAD
                         if summary_bytes:
                             zf.writestr(f"{folder_name}/HiRATE_Summary.docx", summary_bytes)
-=======
->>>>>>> 34c41b806f89ddcb982dab967a6e7b33008eef3f
                     zip_buf.seek(0)
 
                     st.download_button(
@@ -695,3 +689,4 @@ with right_col:
                         key="dl_zip",
                         use_container_width=True,
                     )
+
